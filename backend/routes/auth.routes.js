@@ -1,12 +1,18 @@
 /**
- * routes/auth.routes.js — stub (Phase 2 will implement all handlers)
+ * routes/auth.routes.js
+ * Authentication routes — Phase 2 implementation.
  */
 const express = require('express');
 const router  = express.Router();
+const { register, login, logout, getMe } = require('../controllers/auth.controller');
+const { protect } = require('../middleware/auth.middleware');
 
-router.post('/register', (req, res) => res.status(501).json({ message: 'Phase 2: Register — coming soon' }));
-router.post('/login',    (req, res) => res.status(501).json({ message: 'Phase 2: Login — coming soon' }));
-router.post('/logout',   (req, res) => res.status(501).json({ message: 'Phase 2: Logout — coming soon' }));
-router.get ('/me',       (req, res) => res.status(501).json({ message: 'Phase 2: Get me — coming soon' }));
+// Public routes
+router.post('/register', register);
+router.post('/login',    login);
+
+// Protected routes
+router.post('/logout', protect, logout);
+router.get('/me',      protect, getMe);
 
 module.exports = router;
