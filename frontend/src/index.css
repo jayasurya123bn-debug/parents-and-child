@@ -1,0 +1,182 @@
+/**
+ * src/index.css — Global Styles & Tailwind Directives
+ */
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── CSS Custom Properties ─────────────────────────────────── */
+:root {
+  --brand-primary   : #c044ef;
+  --brand-secondary : #f97316;
+  --bg-canvas       : #f8f4ff;
+  --text-primary    : #1a0533;
+  --text-secondary  : #6b47a8;
+  --card-bg         : #ffffff;
+  --border-color    : #ede4fb;
+  --shadow-soft     : 0 4px 24px -4px rgba(192, 68, 239, 0.12);
+}
+
+.dark {
+  --bg-canvas    : #0f0a1e;
+  --text-primary : #f0e6ff;
+  --text-secondary: #b48fe0;
+  --card-bg      : #1a1033;
+  --border-color : #2d1f50;
+  --shadow-soft  : 0 4px 24px -4px rgba(192, 68, 239, 0.25);
+}
+
+/* ── Base Resets ───────────────────────────────────────────── */
+@layer base {
+  *, *::before, *::after {
+    box-sizing: border-box;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    @apply font-sans antialiased;
+    background-color: var(--bg-canvas);
+    color: var(--text-primary);
+    min-height: 100vh;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-display;
+  }
+
+  img {
+    @apply max-w-full;
+  }
+
+  /* Custom scrollbar */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { @apply bg-brand-300 rounded-full; }
+  ::-webkit-scrollbar-thumb:hover { @apply bg-brand-500; }
+
+  /* Focus ring */
+  :focus-visible {
+    @apply outline-none ring-2 ring-brand-400 ring-offset-2;
+  }
+}
+
+/* ── Component Layer ───────────────────────────────────────── */
+@layer components {
+  /* Gradient text */
+  .gradient-text {
+    @apply bg-gradient-to-r from-brand-500 via-accent-400 to-brand-400 bg-clip-text text-transparent;
+  }
+
+  /* Card */
+  .card {
+    @apply rounded-3xl bg-white/80 dark:bg-white/5 backdrop-blur-sm border border-brand-100/50 dark:border-brand-800/30 shadow-card;
+  }
+
+  /* Glass card */
+  .glass-card {
+    @apply rounded-3xl bg-white/60 dark:bg-white/5 backdrop-blur-lg border border-white/40 dark:border-white/10 shadow-soft;
+  }
+
+  /* Primary button */
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 px-6 py-3 rounded-2xl font-bold text-white
+           bg-gradient-to-r from-brand-500 to-brand-600
+           hover:from-brand-400 hover:to-brand-500
+           active:scale-95 transition-all duration-200
+           shadow-soft hover:shadow-glow
+           disabled:opacity-60 disabled:cursor-not-allowed disabled:active:scale-100;
+  }
+
+  /* Secondary button */
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2 px-6 py-3 rounded-2xl font-bold
+           bg-brand-50 dark:bg-brand-900/30 text-brand-600 dark:text-brand-300
+           border border-brand-200 dark:border-brand-700
+           hover:bg-brand-100 dark:hover:bg-brand-800/30
+           active:scale-95 transition-all duration-200;
+  }
+
+  /* Ghost button */
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl font-semibold
+           text-brand-600 dark:text-brand-300
+           hover:bg-brand-50 dark:hover:bg-brand-900/20
+           active:scale-95 transition-all duration-150;
+  }
+
+  /* Input field */
+  .input-field {
+    @apply w-full px-4 py-3 rounded-xl border border-brand-200 dark:border-brand-700
+           bg-white dark:bg-brand-950/50 text-gray-800 dark:text-gray-100
+           placeholder-gray-400 dark:placeholder-gray-500
+           focus:outline-none focus:ring-2 focus:ring-brand-400 focus:border-transparent
+           transition-all duration-200;
+  }
+
+  /* Badge */
+  .badge {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold;
+  }
+
+  .badge-pending  { @apply badge bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-300; }
+  .badge-approved { @apply badge bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300; }
+  .badge-rejected { @apply badge bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300; }
+  .badge-flagged  { @apply badge bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300; }
+
+  /* Avatar */
+  .avatar {
+    @apply rounded-full object-cover ring-2 ring-brand-200 dark:ring-brand-700;
+  }
+
+  /* Section header */
+  .section-header {
+    @apply text-2xl md:text-3xl font-display font-bold text-gray-900 dark:text-white mb-2;
+  }
+
+  .section-subtitle {
+    @apply text-sm font-medium text-brand-600/70 dark:text-brand-400/70 uppercase tracking-wider mb-6;
+  }
+
+  /* Page container */
+  .page-container {
+    @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8;
+  }
+
+  /* Artwork card hover effect */
+  .artwork-card {
+    @apply card overflow-hidden cursor-pointer transition-all duration-300
+           hover:shadow-glow hover:-translate-y-1;
+  }
+
+  /* Skeleton loader */
+  .skeleton {
+    @apply animate-pulse bg-gradient-to-r from-brand-100 via-brand-50 to-brand-100 dark:from-brand-900/50 dark:via-brand-800/30 dark:to-brand-900/50 rounded-xl;
+  }
+
+  /* Divider */
+  .divider {
+    @apply border-t border-brand-100 dark:border-brand-800 my-6;
+  }
+}
+
+/* ── Utility Overrides ─────────────────────────────────────── */
+@layer utilities {
+  .text-balance { text-wrap: balance; }
+
+  /* Pastel background blobs for hero sections */
+  .bg-blob {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(80px);
+    opacity: 0.25;
+    pointer-events: none;
+  }
+
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+}
