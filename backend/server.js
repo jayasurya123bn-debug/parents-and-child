@@ -66,17 +66,37 @@ app.use(notFound);
 app.use(errorHandler);
 
 // ── Database Connection & Server Start ───────────────────────
+let isConnected = false;
+const connectDB = async () => {
+  if (isConnected || mongoose.connection.readyState >= 1) {
+    isConnected = true;
+    return;
+  }
+  if (!process.env.MONGO_URI) {
+    console.warn('⚠️ MONGO_URI is not defined in environment variables.');
+    return;
+  }
+  try {
+    await mongoose.connect(process.env.MONGO_URI);
+    isConnected = true;
+    console.log('✅ MongoDB connected successfully');
+  } catch (err) {
+    console.error('❌ MongoDB connection failed:', err.message);
+  }
+};
+
+// Ensure database connection middleware for serverless requests
+app.use(async (req, res, next) => {
+  await connectDB();
+  next();
+});
+
 const PORT = process.env.PORT || 5000;
 
-mongoose
-  .connect(process.env.MONGO_URI)
-  .then(() => {
-    console.log('✅ MongoDB connected successfully');
-    app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT} [${process.env.NODE_ENV}]`));
-  })
-  .catch((err) => {
-    console.error('❌ MongoDB connection failed:', err.message);
-    process.exit(1);
+if (require.main === module) {
+  connectDB().then(() => {
+    app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT} [${process.env.NODE_ENV || 'development'}]`));
   });
+}
 
 module.exports = app;
