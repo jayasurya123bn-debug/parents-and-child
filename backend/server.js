@@ -76,23 +76,12 @@ const connectDB = async () => {
     console.warn('⚠️ MONGO_URI is not defined in environment variables.');
     return;
   }
-  const options = {};
-  
-  // AWS DocumentDB Compatibility Layer
-  if (process.env.AWS_DOCDB_CERT_PATH) {
-    options.tls = true;
-    options.tlsCAFile = process.env.AWS_DOCDB_CERT_PATH;
-    options.replicaSet = 'rs0';
-    options.readPreference = 'secondaryPreferred';
-    options.retryWrites = false; // DocumentDB does not support retryable writes
-  }
-
   try {
-    await mongoose.connect(process.env.MONGO_URI, options);
+    await mongoose.connect(process.env.MONGO_URI);
     isConnected = true;
-    console.log('✅ Database connected successfully');
+    console.log('✅ MongoDB connected successfully');
   } catch (err) {
-    console.error('❌ Database connection failed:', err.message);
+    console.error('❌ MongoDB connection failed:', err.message);
   }
 };
 
