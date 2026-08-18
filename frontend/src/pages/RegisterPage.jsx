@@ -48,8 +48,10 @@ export default function RegisterPage() {
       return;
     }
 
-    // Confirmation needed only when Supabase sends a verify email
-    const needsConfirmation = !authData?.session && !authData?.user?.email_confirmed_at;
+    // Auto-login is possible only when Supabase returns a session,
+    // which happens when "Confirm email" is turned OFF in Supabase Auth.
+    const session = authData?.session;
+    const needsConfirmation = !session && !authData?.user?.email_confirmed_at;
     setNeedsEmail(needsConfirmation);
 
     // 2. Insert into our users table
@@ -72,6 +74,11 @@ export default function RegisterPage() {
 
     setSuccess(true);
     setLoading(false);
+
+    // Auto-login: if a session exists, sign the user in and go to dashboard.
+    if (session) {
+      setTimeout(() => navigate('/dashboard'), 1200);
+    }
   };
 
   return (
@@ -120,9 +127,9 @@ export default function RegisterPage() {
                   {needsEmail ? (
                     <p className="text-sm mb-4">Please check your email to verify your account.</p>
                   ) : (
-                    <p className="text-sm mb-4">Your account is ready — you can sign in right now.</p>
+                    <p className="text-sm mb-4">Your account is ready — taking you to your dashboard…</p>
                   )}
-                  <Link to="/login" className="btn-primary py-2 px-6 inline-block">Go to Login</Link>
+                  {needsEmail && <Link to="/login" className="btn-primary py-2 px-6 inline-block">Go to Login</Link>}
                 </div>
               ) : (
                 <form onSubmit={handleSubmit} className="space-y-4">
