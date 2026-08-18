@@ -24,6 +24,7 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(false);
+  const [needsEmail, setNeedsEmail] = useState(false);
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
@@ -38,10 +39,18 @@ export default function RegisterPage() {
     });
     
     if (authError) {
-      setError(authError.message);
+      let msg = authError.message;
+      if (authError.status === 429 || /rate limit/i.test(msg)) {
+        msg = 'Too many signup emails sent (rate limit hit). Wait ~1 hour, or ask the admin to create your account. Tip: turn OFF "Confirm email" in Supabase Auth to stop sending emails on signup.';
+      }
+      setError(msg);
       setLoading(false);
       return;
     }
+
+    // Confirmation needed only when Supabase sends a verify email
+    const needsConfirmation = !authData?.session && !authData?.user?.email_confirmed_at;
+    setNeedsEmail(needsConfirmation);
 
     // 2. Insert into our users table
     if (authData?.user) {
@@ -108,7 +117,11 @@ export default function RegisterPage() {
                 <div className="bg-green-50 text-green-700 p-6 rounded-xl border border-green-200 text-center">
                   <Check size={32} className="mx-auto mb-2 text-green-500" />
                   <h3 className="font-bold text-lg mb-1">Registration Successful!</h3>
-                  <p className="text-sm mb-4">Please check your email to verify your account.</p>
+                  {needsEmail ? (
+                    <p className="text-sm mb-4">Please check your email to verify your account.</p>
+                  ) : (
+                    <p className="text-sm mb-4">Your account is ready — you can sign in right now.</p>
+                  )}
                   <Link to="/login" className="btn-primary py-2 px-6 inline-block">Go to Login</Link>
                 </div>
               ) : (
