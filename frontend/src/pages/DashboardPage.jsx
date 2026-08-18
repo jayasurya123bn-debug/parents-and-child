@@ -30,6 +30,7 @@ export default function DashboardPage() {
   const [profile, setProfile] = useState(null);
   const [children, setChildren] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState({ totalArtworks: 0, totalLikes: 0, forumPosts: 0, featured: 0 });
 
   useEffect(() => {
     let cancelled = false;
@@ -48,12 +49,29 @@ export default function DashboardPage() {
       setProfile(profileData);
 
       if (profileData) {
-        const { data: childrenData } = await supabase
-          .from('children')
-          .select('*')
-          .eq('parent_id', profileData.id)
-          .order('created_at', { ascending: false });
-        if (!cancelled) setChildren(childrenData || []);
+        const [{ data: childrenData }, { data: artworksData }, { count: forumCount }] = await Promise.all([
+          supabase
+            .from('children')
+            .select('*')
+            .eq('parent_id', profileData.id)
+            .order('created_at', { ascending: false }),
+          supabase
+            .from('artworks')
+            .select('id, like_count, is_featured')
+            .eq('parent_id', profileData.id),
+          supabase
+            .from('forum_posts')
+            .select('id', { count: 'exact', head: true })
+            .eq('author_id', profileData.id),
+        ]);
+        if (cancelled) return;
+        setChildren(childrenData || []);
+        setStats({
+          totalArtworks: artworksData?.length || 0,
+          totalLikes: (artworksData || []).reduce((sum, a) => sum + (a.like_count || 0), 0),
+          forumPosts: forumCount || 0,
+          featured: (artworksData || []).filter(a => a.is_featured).length,
+        });
       }
       if (!cancelled) setLoading(false);
     }
@@ -91,10 +109,10 @@ export default function DashboardPage() {
         {/* Stats row */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
           {[
-            { label: 'Total Artworks', value: '17', icon: <Image size={18}/>, color: 'bg-gradient-to-br from-brand-500 to-brand-600' },
-            { label: 'Total Likes',    value: '67', icon: <Heart size={18}/>, color: 'bg-gradient-to-br from-pink-500 to-rose-500'  },
-            { label: 'Forum Posts',   value: '4',  icon: <MessageSquare size={18}/>, color: 'bg-gradient-to-br from-sky-500 to-blue-600' },
-            { label: 'Featured',      value: '2',  icon: <Star size={18}/>,  color: 'bg-gradient-to-br from-amber-400 to-orange-500' },
+            { label: 'Total Artworks', value: stats.totalArtworks, icon: <Image size={18}/>, color: 'bg-gradient-to-br from-brand-500 to-brand-600' },
+            { label: 'Total Likes',    value: stats.totalLikes,    icon: <Heart size={18}/>, color: 'bg-gradient-to-br from-pink-500 to-rose-500'  },
+            { label: 'Forum Posts',   value: stats.forumPosts,    icon: <MessageSquare size={18}/>, color: 'bg-gradient-to-br from-sky-500 to-blue-600' },
+            { label: 'Featured',      value: stats.featured,      icon: <Star size={18}/>,  color: 'bg-gradient-to-br from-amber-400 to-orange-500' },
           ].map(s => (
             <div key={s.label} className="glass-card p-5 flex items-center gap-4">
               <div className={`w-10 h-10 rounded-xl ${s.color} flex items-center justify-center text-white shadow-md shrink-0`}>{s.icon}</div>
