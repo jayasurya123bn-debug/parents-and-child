@@ -45,9 +45,9 @@ export default function ArtworkCard({ artwork, onClick }) {
       )}
 
       {/* Image */}
-      <div className="relative aspect-[4/3] overflow-hidden bg-brand-50 dark:bg-brand-900/30">
+      <div className="relative aspect-[4/3] bg-brand-50 dark:bg-brand-900/30 overflow-hidden">
         <img
-          src={imgErr ? fallback : artwork.images?.thumbnail?.url || fallback}
+          src={imgErr ? fallback : artwork.image_original_url || fallback}
           alt={artwork.title}
           onError={() => setImgErr(true)}
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"

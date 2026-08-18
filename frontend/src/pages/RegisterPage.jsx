@@ -8,6 +8,8 @@ import { Mail, Lock, Eye, EyeOff, User, Palette, Shield, Check } from 'lucide-re
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import FlyingEmojis from '../components/FlyingEmojis';
+import { supabase } from '../api/supabaseClient';
+import { useNavigate } from 'react-router-dom';
 
 const PERKS = [
   'Create child profiles safely',
@@ -19,10 +21,46 @@ const PERKS = [
 export default function RegisterPage() {
   const [show, setShow] = useState(false);
   const [form, setForm] = useState({ firstName: '', lastName: '', email: '', password: '', agree: false });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [success, setSuccess] = useState(false);
+  const navigate = useNavigate();
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    alert('Phase 4: Register API will be wired here.\n\nName: ' + form.firstName + ' ' + form.lastName);
+    setLoading(true);
+    setError(null);
+    
+    // 1. Sign up with Supabase Auth
+    const { data: authData, error: authError } = await supabase.auth.signUp({
+      email: form.email,
+      password: form.password,
+    });
+    
+    if (authError) {
+      setError(authError.message);
+      setLoading(false);
+      return;
+    }
+
+    // 2. Insert into our users table
+    if (authData?.user) {
+      const { error: dbError } = await supabase.from('users').insert([{
+        first_name: form.firstName,
+        last_name: form.lastName,
+        username: form.firstName.toLowerCase() + Math.floor(Math.random() * 10000),
+        email: form.email,
+        password: 'supabase_managed'
+      }]);
+
+      if (dbError) {
+        console.error('Error inserting user data:', dbError);
+        // We still let them continue if auth succeeded, but log the error
+      }
+    }
+
+    setSuccess(true);
+    setLoading(false);
   };
 
   return (
@@ -64,8 +102,21 @@ export default function RegisterPage() {
               <h1 className="text-xl font-display font-extrabold text-gray-900 dark:text-white mb-1">Create Your Account</h1>
               <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">Parent accounts only · Free forever</p>
 
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="grid grid-cols-2 gap-3">
+              {success ? (
+                <div className="bg-green-50 text-green-700 p-6 rounded-xl border border-green-200 text-center">
+                  <Check size={32} className="mx-auto mb-2 text-green-500" />
+                  <h3 className="font-bold text-lg mb-1">Registration Successful!</h3>
+                  <p className="text-sm mb-4">Please check your email to verify your account.</p>
+                  <Link to="/login" className="btn-primary py-2 px-6 inline-block">Go to Login</Link>
+                </div>
+              ) : (
+                <form onSubmit={handleSubmit} className="space-y-4">
+                  {error && (
+                    <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm border border-red-200">
+                      {error}
+                    </div>
+                  )}
+                  <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">First Name</label>
                     <div className="relative">
@@ -114,10 +165,11 @@ export default function RegisterPage() {
                   </span>
                 </label>
 
-                <button type="submit" className="btn-primary w-full py-3">
-                  Create Free Account →
+                <button type="submit" disabled={loading} className="btn-primary w-full py-3 disabled:opacity-50">
+                  {loading ? 'Creating Account...' : 'Create Free Account →'}
                 </button>
               </form>
+              )}
 
               <p className="text-center text-xs text-gray-500 mt-4">
                 Already have an account? <Link to="/login" className="text-brand-600 font-bold hover:text-brand-700">Sign in</Link>

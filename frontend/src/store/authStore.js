@@ -1,32 +1,37 @@
 /**
  * src/store/authStore.js
- * Zustand global auth state (Phase 3 will connect this to the API).
+ * Zustand global auth state synced with Supabase Auth.
  */
 
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { supabase } from '../api/supabaseClient';
 
-const useAuthStore = create(
-  persist(
-    (set) => ({
-      user : null,
-      token: null,
-      isAuthenticated: false,
+const useAuthStore = create((set) => ({
+  user: null,
+  isAuthenticated: false,
+  isInitialized: false,
 
-      setAuth: (user, token) =>
-        set({ user, token, isAuthenticated: true }),
+  // Called once on app load to get current session and setup listener
+  initialize: async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    set({
+      user: session?.user || null,
+      isAuthenticated: !!session,
+      isInitialized: true,
+    });
 
-      logout: () =>
-        set({ user: null, token: null, isAuthenticated: false }),
+    supabase.auth.onAuthStateChange((_event, session) => {
+      set({
+        user: session?.user || null,
+        isAuthenticated: !!session,
+      });
+    });
+  },
 
-      updateUser: (updates) =>
-        set((state) => ({ user: { ...state.user, ...updates } })),
-    }),
-    {
-      name   : 'artbloom_auth',
-      partialize: (state) => ({ user: state.user, token: state.token, isAuthenticated: state.isAuthenticated }),
-    }
-  )
-);
+  logout: async () => {
+    await supabase.auth.signOut();
+    set({ user: null, isAuthenticated: false });
+  },
+}));
 
 export default useAuthStore;

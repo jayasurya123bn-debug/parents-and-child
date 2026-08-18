@@ -18,7 +18,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { Star, Heart, Sparkles, Trophy, Palette, Music2, Rainbow, Rocket, Flower2, Fish, Turtle, Bird, Dog, Cat, Sun, Moon, Cloud, Zap } from 'lucide-react';
-import { MOCK_ARTWORKS } from '../data/mockData';
+import { supabase } from '../api/supabaseClient';
 
 // ── Floating Emoji Particle ───────────────────────────────────
 function FloatEmoji({ emoji, style }) {
@@ -84,7 +84,7 @@ function KidArtCard({ artwork, isFave, onFave, onReact }) {
       {/* Image */}
       <div className="relative aspect-square overflow-hidden bg-gradient-to-br from-brand-50 to-accent-50">
         <img
-          src={imgErr ? fallback : artwork.images?.thumbnail?.url || fallback}
+          src={imgErr ? fallback : artwork.image_original_url || fallback}
           alt={artwork.title}
           onError={() => setImgErr(true)}
           className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
@@ -182,6 +182,8 @@ const FLOATS = [
 // ── MAIN KIDS ZONE PAGE ────────────────────────────────────────
 // ═══════════════════════════════════════════════════════════════
 export default function KidsZonePage() {
+  const [artworks,   setArtworks]   = useState([]);
+  const [loading,    setLoading]    = useState(false);
   const [zone,       setZone]       = useState(null);       // selected age zone
   const [avatar,     setAvatar]     = useState(AVATARS[4]); // selected avatar
   const [faves,      setFaves]      = useState([]);
@@ -189,11 +191,30 @@ export default function KidsZonePage() {
   const [showAvatarPicker, setAvatarPicker] = useState(false);
   const [search,     setSearch]     = useState('');
 
+  // Fetch artworks when zone changes
+  useEffect(() => {
+    const fetchArtworks = async () => {
+      if (!zone) return;
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('artworks')
+        .select(`*, child:children!inner(display_name, age_group)`)
+        .eq('moderation_status', 'approved')
+        .eq('children.age_group', zone.age);
+        
+      if (!error && data) {
+        setArtworks(data);
+      }
+      setLoading(false);
+    };
+    fetchArtworks();
+  }, [zone]);
+
   const toggleFave = (id) => {
     setFaves(f => f.includes(id) ? f.filter(x => x !== id) : [...f, id]);
   };
 
-  const filtered = MOCK_ARTWORKS.filter(a =>
+  const filtered = artworks.filter(a =>
     search ? (a.title.toLowerCase().includes(search.toLowerCase()) || a.child?.displayName?.toLowerCase().includes(search.toLowerCase())) : true
   );
 
@@ -379,7 +400,13 @@ export default function KidsZonePage() {
               />
             </div>
 
-            {/* Art grid */}
+            {loading ? (
+              <div className="flex justify-center items-center py-20">
+                <div className="w-10 h-10 border-4 border-brand-400 border-t-white rounded-full animate-spin"></div>
+              </div>
+            ) : (
+              <>
+                {/* Art grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
               {filtered.map(art => (
                 <KidArtCard
@@ -400,6 +427,8 @@ export default function KidsZonePage() {
                   Show All Art 🎨
                 </button>
               </div>
+            )}
+            </>
             )}
           </div>
         )}
@@ -426,7 +455,7 @@ export default function KidsZonePage() {
                   <span className="bg-red-100 text-red-500 font-extrabold text-sm px-3 py-1 rounded-full">{faves.length} saved ❤️</span>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-                  {MOCK_ARTWORKS.filter(a => faves.includes(a._id)).map(art => (
+                  {artworks.filter(a => faves.includes(a._id)).map(art => (
                     <KidArtCard key={art._id} artwork={art} isFave={true} onFave={toggleFave}/>
                   ))}
                 </div>
@@ -494,7 +523,7 @@ export default function KidsZonePage() {
               {[
                 { emoji: '❤️', label: 'Faves Saved', value: faves.length },
                 { emoji: '🏆', label: 'Badges',      value: BADGES.filter(b=>b.earned).length },
-                { emoji: '🎨', label: 'Art Viewed',  value: MOCK_ARTWORKS.length },
+                { emoji: '🎨', label: 'Art Viewed',  value: artworks.length },
               ].map(s => (
                 <div key={s.label} className="bg-white rounded-2xl p-4 text-center shadow-md border-2 border-brand-100">
                   <div className="text-3xl mb-1">{s.emoji}</div>

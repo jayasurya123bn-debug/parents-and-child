@@ -195,8 +195,8 @@ function ModerationQueue() {
           {items.map(art => (
             <div key={art._id} className="glass-card overflow-hidden hover:shadow-glow transition-all duration-300">
               {/* Image */}
-              <div className="relative aspect-[4/3] bg-brand-50 dark:bg-brand-900/30 overflow-hidden cursor-pointer" onClick={() => setSelected(art)}>
-                <img src={art.images?.thumbnail?.url} alt={art.title} className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"/>
+              <div className="group relative rounded-2xl overflow-hidden aspect-video bg-gray-100 dark:bg-gray-800" onClick={() => setSelected(art)}>
+                <img src={art.image_original_url} alt={art.title} className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"/>
                 {/* AI Safety score badge */}
                 <div className={`absolute top-2 right-2 bg-white/90 dark:bg-black/60 rounded-lg px-2 py-1 flex items-center gap-1 text-xs font-bold ${safeColor(art.aiSafetyScore)}`}>
                   <Shield size={10}/> {(art.aiSafetyScore * 100).toFixed(0)}% safe

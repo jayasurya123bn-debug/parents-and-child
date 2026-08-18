@@ -9,13 +9,30 @@ import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import FlyingEmojis from '../components/FlyingEmojis';
 
+import { supabase } from '../api/supabaseClient';
+import { useNavigate } from 'react-router-dom';
+
 export default function LoginPage() {
   const [show, setShow] = useState(false);
   const [form, setForm] = useState({ email: '', password: '' });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const navigate = useNavigate();
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    alert('Phase 4: Login API will be wired here.\n\nEmail: ' + form.email);
+    setLoading(true);
+    setError(null);
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: form.email,
+      password: form.password,
+    });
+    setLoading(false);
+    if (error) {
+      setError(error.message);
+    } else {
+      navigate('/dashboard');
+    }
   };
 
   return (
@@ -40,6 +57,11 @@ export default function LoginPage() {
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-4">
+              {error && (
+                <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm border border-red-200">
+                  {error}
+                </div>
+              )}
               {/* Email */}
               <div>
                 <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">Email Address</label>
@@ -81,8 +103,8 @@ export default function LoginPage() {
                 <a href="#" className="text-brand-600 hover:text-brand-700 font-semibold">Forgot password?</a>
               </div>
 
-              <button type="submit" className="btn-primary w-full py-3 text-base mt-2">
-                Sign In to ArtBloom
+              <button type="submit" disabled={loading} className="btn-primary w-full py-3 text-base mt-2 disabled:opacity-50">
+                {loading ? 'Signing in...' : 'Sign In to ArtBloom'}
               </button>
             </form>
 

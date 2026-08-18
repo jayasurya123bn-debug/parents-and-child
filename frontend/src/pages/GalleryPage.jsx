@@ -15,7 +15,8 @@ import { Search, SlidersHorizontal, X, Heart, Eye, Palette, Star, Users, Image a
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import ArtworkCard from '../components/ArtworkCard';
-import { MOCK_ARTWORKS, MOCK_STATS, CATEGORIES, AGE_GROUPS } from '../data/mockData';
+import { supabase } from '../api/supabaseClient';
+import { MOCK_STATS, CATEGORIES, AGE_GROUPS } from '../data/mockData';
 
 // ── Artwork Detail Modal ─────────────────────────────────────
 function ArtworkModal({ artwork, onClose }) {
@@ -50,7 +51,7 @@ function ArtworkModal({ artwork, onClose }) {
               </div>
             )}
             <img
-              src={imgErr ? fallback : artwork.images?.original?.url || artwork.images?.thumbnail?.url || fallback}
+              src={imgErr ? fallback : artwork.image_original_url || fallback}
               alt={artwork.title}
               onError={() => setImgErr(true)}
               className="w-full h-full object-cover"
@@ -132,6 +133,8 @@ function StatCard({ icon, value, label, color }) {
 
 // ── Main Gallery Page ────────────────────────────────────────
 export default function GalleryPage() {
+  const [artworks, setArtworks] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedAge,      setSelectedAge]      = useState('all');
   const [search,           setSearch]           = useState('');
@@ -139,9 +142,25 @@ export default function GalleryPage() {
   const [selectedArtwork,  setSelectedArtwork]  = useState(null);
   const [showFilters,      setShowFilters]      = useState(false);
 
+  React.useEffect(() => {
+    const fetchArtworks = async () => {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('artworks')
+        .select(`*, child:children(display_name, age_group)`)
+        .eq('moderation_status', 'approved');
+      
+      if (!error && data) {
+        setArtworks(data);
+      }
+      setLoading(false);
+    };
+    fetchArtworks();
+  }, []);
+
   // Filter + sort artworks
   const filtered = useMemo(() => {
-    let list = [...MOCK_ARTWORKS];
+    let list = [...artworks];
     if (selectedCategory !== 'all') list = list.filter(a => a.category === selectedCategory);
     if (selectedAge      !== 'all') list = list.filter(a => a.child?.ageGroup === selectedAge);
     if (search.trim())              list = list.filter(a =>
@@ -153,9 +172,9 @@ export default function GalleryPage() {
     if (sortBy === 'latest')  list.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
     if (sortBy === 'views')   list.sort((a, b) => b.viewCount  - a.viewCount);
     return list;
-  }, [selectedCategory, selectedAge, search, sortBy]);
+  }, [artworks, selectedCategory, selectedAge, search, sortBy]);
 
-  const featured = MOCK_ARTWORKS.filter(a => a.isFeatured).slice(0, 3);
+  const featured = artworks.filter(a => a.is_featured).slice(0, 3);
 
   return (
     <div className="min-h-screen bg-[var(--bg-canvas)]">
@@ -226,7 +245,7 @@ export default function GalleryPage() {
             <div key={art._id} onClick={() => setSelectedArtwork(art)}
               className="group relative rounded-3xl overflow-hidden cursor-pointer shadow-card hover:shadow-glow hover:-translate-y-1.5 transition-all duration-300 aspect-[4/3]">
               <img
-                src={art.images?.thumbnail?.url}
+                src={art.image_original_url}
                 alt={art.title}
                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
               />
@@ -258,7 +277,13 @@ export default function GalleryPage() {
           </button>
         </div>
 
-        {/* Search + Sort */}
+        {loading ? (
+          <div className="flex justify-center items-center py-20">
+            <div className="w-10 h-10 border-4 border-brand-200 border-t-brand-500 rounded-full animate-spin"></div>
+          </div>
+        ) : (
+          <>
+            {/* Search + Sort */}
         <div className="flex flex-col sm:flex-row gap-3 mb-5">
           <div className="relative flex-1">
             <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"/>
@@ -368,6 +393,8 @@ export default function GalleryPage() {
               Clear Filters
             </button>
           </div>
+        )}
+        </>
         )}
       </section>
 

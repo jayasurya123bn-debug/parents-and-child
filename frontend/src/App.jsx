@@ -2,8 +2,9 @@
  * src/App.jsx — Root Component with Routing
  */
 
-import React, { Suspense, lazy } from 'react';
+import React, { Suspense, lazy, useEffect } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
+import useAuthStore from './store/authStore';
 
 // ── Lazy-loaded pages ────────────────────────────────────────
 const LoginPage      = lazy(() => import('./pages/LoginPage'));
@@ -28,6 +29,15 @@ const PageLoader = () => (
 );
 
 export default function App() {
+  const initialize = useAuthStore((state) => state.initialize);
+  const isInitialized = useAuthStore((state) => state.isInitialized);
+
+  useEffect(() => {
+    initialize();
+  }, [initialize]);
+
+  if (!isInitialized) return <PageLoader />;
+
   return (
     <Suspense fallback={<PageLoader />}>
       <Routes>
