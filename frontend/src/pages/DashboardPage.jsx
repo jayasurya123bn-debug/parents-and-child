@@ -2,15 +2,20 @@
  * src/pages/DashboardPage.jsx
  * Parent dashboard with child profiles, quick stats, and recent activity.
  */
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Plus, Upload, MessageSquare, Heart, Image, Star, Users, Bell, ChevronRight } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
+import useAuthStore from '../store/authStore';
+import { supabase } from '../api/supabaseClient';
 
-const MOCK_CHILDREN = [
-  { id: '1', name: 'Emma', age: 8, avatar: 'E', artCount: 12, likes: 48, color: 'from-pink-400 to-rose-500' },
-  { id: '2', name: 'Oliver', age: 6, avatar: 'O', artCount: 5, likes: 19, color: 'from-sky-400 to-blue-500' },
+const CHILD_COLORS = [
+  'from-pink-400 to-rose-500',
+  'from-sky-400 to-blue-500',
+  'from-emerald-400 to-teal-500',
+  'from-amber-400 to-orange-500',
+  'from-violet-400 to-purple-500',
 ];
 
 const RECENT_ACTIVITY = [
@@ -21,6 +26,51 @@ const RECENT_ACTIVITY = [
 ];
 
 export default function DashboardPage() {
+  const { user } = useAuthStore();
+  const [profile, setProfile] = useState(null);
+  const [children, setChildren] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      if (!user) {
+        if (!cancelled) setLoading(false);
+        return;
+      }
+      const { data: profileData } = await supabase
+        .from('users')
+        .select('*')
+        .eq('email', user.email)
+        .maybeSingle();
+
+      if (cancelled) return;
+      setProfile(profileData);
+
+      if (profileData) {
+        const { data: childrenData } = await supabase
+          .from('children')
+          .select('*')
+          .eq('parent_id', profileData.id)
+          .order('created_at', { ascending: false });
+        if (!cancelled) setChildren(childrenData || []);
+      }
+      if (!cancelled) setLoading(false);
+    }
+    load();
+    return () => { cancelled = true; };
+  }, [user]);
+
+  const displayName = profile
+    ? `${profile.first_name} ${profile.last_name}`
+    : user?.email || 'Guest';
+
+  const ageFromDob = (dob) => {
+    if (!dob) return null;
+    const diff = Date.now() - new Date(dob).getTime();
+    return Math.floor(diff / (1000 * 60 * 60 * 24 * 365.25));
+  };
+
   return (
     <div className="min-h-screen bg-[var(--bg-canvas)]">
       <Navbar/>
@@ -29,7 +79,7 @@ export default function DashboardPage() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
           <div>
             <p className="text-sm text-brand-500 font-bold mb-1">👋 Welcome back,</p>
-            <h1 className="text-3xl font-display font-extrabold text-gray-900 dark:text-white">Sarah Johnson</h1>
+            <h1 className="text-3xl font-display font-extrabold text-gray-900 dark:text-white">{displayName}</h1>
             <p className="text-gray-500 text-sm mt-1">Manage your children's art profiles and community activity</p>
           </div>
           <div className="flex gap-3">
@@ -64,25 +114,33 @@ export default function DashboardPage() {
               <button className="btn-ghost text-sm"><Plus size={15}/>Add Child</button>
             </div>
             <div className="grid gap-4">
-              {MOCK_CHILDREN.map(child => (
-                <div key={child.id} className="glass-card p-5 flex items-center gap-4 hover:shadow-glow transition-all duration-300">
-                  <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${child.color} flex items-center justify-center text-white text-2xl font-extrabold shadow-md shrink-0`}>
-                    {child.avatar}
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="font-bold text-gray-900 dark:text-white">{child.name}</h3>
-                    <p className="text-xs text-gray-500">{child.age} years old</p>
-                    <div className="flex items-center gap-3 mt-1 text-xs text-gray-400">
-                      <span className="flex items-center gap-1"><Image size={11}/>{child.artCount} artworks</span>
-                      <span className="flex items-center gap-1"><Heart size={11}/>{child.likes} likes</span>
+              {loading ? (
+                <div className="glass-card p-5 text-center text-sm text-gray-500">Loading your children...</div>
+              ) : children.length === 0 ? (
+                <div className="glass-card p-5 text-center text-sm text-gray-500">
+                  No child profiles yet — add your first child to start showcasing artwork.
+                </div>
+              ) : (
+                children.map((child, i) => (
+                  <div key={child.id} className="glass-card p-5 flex items-center gap-4 hover:shadow-glow transition-all duration-300">
+                    <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${CHILD_COLORS[i % CHILD_COLORS.length]} flex items-center justify-center text-white text-2xl font-extrabold shadow-md shrink-0`}>
+                      {(child.display_name || 'C').charAt(0).toUpperCase()}
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="font-bold text-gray-900 dark:text-white">{child.display_name}</h3>
+                      <p className="text-xs text-gray-500">{ageFromDob(child.date_of_birth) ?? '—'} years old</p>
+                      <div className="flex items-center gap-3 mt-1 text-xs text-gray-400">
+                        <span className="flex items-center gap-1"><Image size={11}/>{child.total_uploads ?? 0} artworks</span>
+                        <span className="flex items-center gap-1"><Heart size={11}/>{child.total_likes ?? 0} likes</span>
+                      </div>
+                    </div>
+                    <div className="flex flex-col gap-2">
+                      <Link to={`/profile/${child.id}`} className="btn-secondary text-xs py-1.5 px-3">View Profile</Link>
+                      <Link to="/upload" className="btn-primary text-xs py-1.5 px-3"><Upload size={11}/>Upload</Link>
                     </div>
                   </div>
-                  <div className="flex flex-col gap-2">
-                    <Link to={`/profile/${child.id}`} className="btn-secondary text-xs py-1.5 px-3">View Profile</Link>
-                    <Link to="/upload" className="btn-primary text-xs py-1.5 px-3"><Upload size={11}/>Upload</Link>
-                  </div>
-                </div>
-              ))}
+                ))
+              )}
 
               {/* Add child card */}
               <div className="border-2 border-dashed border-brand-200 dark:border-brand-800 rounded-3xl p-6 flex flex-col items-center justify-center gap-2 text-center hover:border-brand-400 hover:bg-brand-50/50 dark:hover:bg-brand-900/20 transition-all duration-200 cursor-pointer group">
