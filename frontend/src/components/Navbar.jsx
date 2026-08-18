@@ -5,14 +5,14 @@
 import React, { useState, useEffect } from 'react';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { Palette, Menu, X, Upload, MessageSquare, User, LogOut, Shield, Home } from 'lucide-react';
+import useAuthStore from '../store/authStore';
+import { supabase } from '../api/supabaseClient';
 
 export default function Navbar() {
   const [open, setOpen]       = useState(false);
   const [scrolled, setScrolled] = useState(false);
-
-  // Mock auth — Phase 3 will wire to Zustand
-  const isAuth  = !!localStorage.getItem('artbloom_token');
-  const isAdmin = localStorage.getItem('artbloom_role') === 'admin';
+  const [isAdmin, setIsAdmin] = useState(false);
+  const { user, isAuthenticated, logout, isInitialized } = useAuthStore();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -21,10 +21,29 @@ export default function Navbar() {
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
-  const handleLogout = () => {
-    localStorage.clear();
+  useEffect(() => {
+    if (!isAuthenticated || !user) {
+      setIsAdmin(false);
+      return;
+    }
+    let cancelled = false;
+    supabase
+      .from('users')
+      .select('role')
+      .eq('email', user.email)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (!cancelled) setIsAdmin(data?.role === 'admin');
+      });
+    return () => { cancelled = true; };
+  }, [isAuthenticated, user]);
+
+  const handleLogout = async () => {
+    await logout();
     navigate('/login');
   };
+
+  const isAuth = isInitialized && isAuthenticated;
 
   const links = [
     { to: '/gallery',   label: 'Gallery',    icon: <Home size={16}/> },

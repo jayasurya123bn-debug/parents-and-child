@@ -66,13 +66,13 @@ function KidArtCard({ artwork, isFave, onFave, onReact }) {
 
   const handleFave = () => {
     setConfetti(true);
-    onFave(artwork._id);
+    onFave(artwork.id);
     setTimeout(() => setConfetti(false), 800);
   };
 
   const handleReact = (r) => {
     setReaction(r.emoji);
-    onReact && onReact(artwork._id, r.emoji);
+    onReact && onReact(artwork.id, r.emoji);
   };
 
   const fallback = `https://ui-avatars.com/api/?name=${encodeURIComponent(artwork.title)}&background=c044ef&color=fff&size=400&font-size=0.3&bold=true`;
@@ -112,9 +112,9 @@ function KidArtCard({ artwork, isFave, onFave, onReact }) {
         <h3 className="text-lg font-extrabold text-gray-900 leading-tight mb-1 line-clamp-1">{artwork.title}</h3>
         <div className="flex items-center gap-2 mb-3">
           <div className="w-7 h-7 rounded-full bg-gradient-to-br from-brand-400 to-accent-400 flex items-center justify-center text-white text-sm font-extrabold">
-            {artwork.child?.displayName?.[0] || '?'}
+            {artwork.child?.display_name?.[0] || '?'}
           </div>
-          <span className="text-sm font-bold text-gray-600">{artwork.child?.displayName}</span>
+          <span className="text-sm font-bold text-gray-600">{artwork.child?.display_name}</span>
           <span className="ml-auto text-xs bg-brand-100 text-brand-600 px-2 py-0.5 rounded-full font-bold capitalize">
             {artwork.category?.replace('_', ' ')}
           </span>
@@ -215,7 +215,7 @@ export default function KidsZonePage() {
   };
 
   const filtered = artworks.filter(a =>
-    search ? (a.title.toLowerCase().includes(search.toLowerCase()) || a.child?.displayName?.toLowerCase().includes(search.toLowerCase())) : true
+    search ? (a.title.toLowerCase().includes(search.toLowerCase()) || a.child?.display_name?.toLowerCase().includes(search.toLowerCase())) : true
   );
 
   // ── Landing — pick your age zone ──────────────────────────
@@ -410,9 +410,9 @@ export default function KidsZonePage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
               {filtered.map(art => (
                 <KidArtCard
-                  key={art._id}
+                  key={art.id}
                   artwork={art}
-                  isFave={faves.includes(art._id)}
+                  isFave={faves.includes(art.id)}
                   onFave={toggleFave}
                 />
               ))}
@@ -455,8 +455,8 @@ export default function KidsZonePage() {
                   <span className="bg-red-100 text-red-500 font-extrabold text-sm px-3 py-1 rounded-full">{faves.length} saved ❤️</span>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-                  {artworks.filter(a => faves.includes(a._id)).map(art => (
-                    <KidArtCard key={art._id} artwork={art} isFave={true} onFave={toggleFave}/>
+                  {artworks.filter(a => faves.includes(a.id)).map(art => (
+                    <KidArtCard key={art.id} artwork={art} isFave={true} onFave={toggleFave}/>
                   ))}
                 </div>
               </div>

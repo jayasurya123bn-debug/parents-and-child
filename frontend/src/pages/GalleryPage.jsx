@@ -16,12 +16,12 @@ import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import ArtworkCard from '../components/ArtworkCard';
 import { supabase } from '../api/supabaseClient';
-import { MOCK_STATS, CATEGORIES, AGE_GROUPS } from '../data/mockData';
+import { CATEGORIES, AGE_GROUPS } from '../data/mockData';
 
 // ── Artwork Detail Modal ─────────────────────────────────────
 function ArtworkModal({ artwork, onClose }) {
   const [liked, setLiked] = useState(false);
-  const [likes, setLikes] = useState(artwork.likeCount || 0);
+  const [likes, setLikes] = useState(artwork.like_count || 0);
   const [imgErr, setImgErr] = useState(false);
 
   if (!artwork) return null;
@@ -45,7 +45,7 @@ function ArtworkModal({ artwork, onClose }) {
         <div className="grid md:grid-cols-2">
           {/* Image */}
           <div className="relative aspect-square md:aspect-auto md:min-h-[400px] bg-brand-50 dark:bg-brand-900/30 rounded-t-3xl md:rounded-l-3xl md:rounded-tr-none overflow-hidden">
-            {artwork.isFeatured && (
+            {artwork.is_featured && (
               <div className="absolute top-4 left-4 z-10 flex items-center gap-1 bg-gradient-to-r from-amber-400 to-orange-400 text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-md">
                 <Star size={11} fill="white" /> Featured
               </div>
@@ -71,10 +71,10 @@ function ArtworkModal({ artwork, onClose }) {
             {/* Artist */}
             <div className="flex items-center gap-2 mb-4">
               <div className="w-8 h-8 rounded-full bg-gradient-to-br from-brand-400 to-accent-400 flex items-center justify-center text-white text-sm font-bold">
-                {artwork.child?.displayName?.[0] || '?'}
+                {artwork.child?.display_name?.[0] || '?'}
               </div>
               <div>
-                <p className="text-sm font-semibold text-gray-700 dark:text-gray-200">{artwork.child?.displayName}</p>
+                <p className="text-sm font-semibold text-gray-700 dark:text-gray-200">{artwork.child?.display_name}</p>
                 <p className="text-xs text-gray-400">Young Artist</p>
               </div>
             </div>
@@ -83,10 +83,10 @@ function ArtworkModal({ artwork, onClose }) {
             <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed mb-4">{artwork.description}</p>
 
             {/* Child's story */}
-            {artwork.childStory && (
+            {artwork.child_story && (
               <div className="bg-brand-50 dark:bg-brand-900/30 rounded-2xl p-4 mb-5 border-l-4 border-brand-400">
                 <p className="text-xs font-bold text-brand-600 dark:text-brand-300 mb-1">💬 In their own words:</p>
-                <p className="text-sm text-gray-700 dark:text-gray-200 italic">"{artwork.childStory}"</p>
+                <p className="text-sm text-gray-700 dark:text-gray-200 italic">"{artwork.child_story}"</p>
               </div>
             )}
 
@@ -101,7 +101,7 @@ function ArtworkModal({ artwork, onClose }) {
 
             {/* Stats */}
             <div className="flex items-center gap-4 mt-auto pt-4 border-t border-brand-50 dark:border-brand-900/50">
-              <span className="flex items-center gap-1.5 text-sm text-gray-500"><Eye size={15}/>{artwork.viewCount?.toLocaleString() || 0} views</span>
+              <span className="flex items-center gap-1.5 text-sm text-gray-500"><Eye size={15}/>{artwork.view_count?.toLocaleString() || 0} views</span>
               <button
                 onClick={() => { setLiked(l => !l); setLikes(n => liked ? n - 1 : n + 1); }}
                 className={`flex items-center gap-1.5 text-sm font-semibold ml-auto transition-all duration-200 ${liked ? 'text-red-500' : 'text-gray-400 hover:text-red-400'}`}
@@ -134,6 +134,7 @@ function StatCard({ icon, value, label, color }) {
 // ── Main Gallery Page ────────────────────────────────────────
 export default function GalleryPage() {
   const [artworks, setArtworks] = useState([]);
+  const [stats, setStats] = useState({ totalArtworks: 0, totalArtists: 0, totalParents: 0, totalLikes: 0 });
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedAge,      setSelectedAge]      = useState('all');
@@ -145,13 +146,23 @@ export default function GalleryPage() {
   React.useEffect(() => {
     const fetchArtworks = async () => {
       setLoading(true);
-      const { data, error } = await supabase
-        .from('artworks')
-        .select(`*, child:children(display_name, age_group)`)
-        .eq('moderation_status', 'approved');
-      
+      const [{ data, error }, { count: artistCount }, { count: parentCount }] = await Promise.all([
+        supabase
+          .from('artworks')
+          .select('*, child:children(display_name, age_group)')
+          .eq('moderation_status', 'approved'),
+        supabase.from('children').select('id', { count: 'exact', head: true }),
+        supabase.from('users').select('id', { count: 'exact', head: true }),
+      ]);
+
       if (!error && data) {
         setArtworks(data);
+        setStats({
+          totalArtworks: data.length,
+          totalArtists: artistCount || 0,
+          totalParents: parentCount || 0,
+          totalLikes: data.reduce((sum, a) => sum + (a.like_count || 0), 0),
+        });
       }
       setLoading(false);
     };
@@ -162,15 +173,15 @@ export default function GalleryPage() {
   const filtered = useMemo(() => {
     let list = [...artworks];
     if (selectedCategory !== 'all') list = list.filter(a => a.category === selectedCategory);
-    if (selectedAge      !== 'all') list = list.filter(a => a.child?.ageGroup === selectedAge);
+    if (selectedAge      !== 'all') list = list.filter(a => a.child?.age_group === selectedAge);
     if (search.trim())              list = list.filter(a =>
       a.title.toLowerCase().includes(search.toLowerCase()) ||
-      a.child?.displayName?.toLowerCase().includes(search.toLowerCase()) ||
+      a.child?.display_name?.toLowerCase().includes(search.toLowerCase()) ||
       a.tags?.some(t => t.toLowerCase().includes(search.toLowerCase()))
     );
-    if (sortBy === 'popular') list.sort((a, b) => b.likeCount  - a.likeCount);
-    if (sortBy === 'latest')  list.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-    if (sortBy === 'views')   list.sort((a, b) => b.viewCount  - a.viewCount);
+    if (sortBy === 'popular') list.sort((a, b) => b.like_count  - a.like_count);
+    if (sortBy === 'latest')  list.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+    if (sortBy === 'views')   list.sort((a, b) => b.view_count  - a.view_count);
     return list;
   }, [artworks, selectedCategory, selectedAge, search, sortBy]);
 
@@ -220,10 +231,10 @@ export default function GalleryPage() {
 
           {/* Stats Row */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 max-w-3xl mx-auto">
-            <StatCard icon={<ImageIcon size={20}/>} value={MOCK_STATS.totalArtworks.toLocaleString()} label="Artworks Shared"  color="bg-gradient-to-br from-brand-500 to-brand-600" />
-            <StatCard icon={<Palette size={20}/>}   value={MOCK_STATS.totalArtists.toLocaleString()}  label="Young Artists"   color="bg-gradient-to-br from-accent-500 to-orange-600" />
-            <StatCard icon={<Users size={20}/>}     value={MOCK_STATS.totalParents.toLocaleString()}  label="Parent Members"  color="bg-gradient-to-br from-emerald-500 to-teal-600" />
-            <StatCard icon={<Heart size={20}/>}     value={(MOCK_STATS.totalLikes/1000).toFixed(0)+'k'} label="Likes Given"  color="bg-gradient-to-br from-pink-500 to-rose-600" />
+            <StatCard icon={<ImageIcon size={20}/>} value={stats.totalArtworks.toLocaleString()} label="Artworks Shared"  color="bg-gradient-to-br from-brand-500 to-brand-600" />
+            <StatCard icon={<Palette size={20}/>}   value={stats.totalArtists.toLocaleString()}  label="Young Artists"   color="bg-gradient-to-br from-accent-500 to-orange-600" />
+            <StatCard icon={<Users size={20}/>}     value={stats.totalParents.toLocaleString()}  label="Parent Members"  color="bg-gradient-to-br from-emerald-500 to-teal-600" />
+            <StatCard icon={<Heart size={20}/>}     value={stats.totalLikes.toLocaleString()}    label="Likes Given"    color="bg-gradient-to-br from-pink-500 to-rose-600" />
           </div>
         </div>
       </section>
@@ -242,7 +253,7 @@ export default function GalleryPage() {
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
           {featured.map(art => (
-            <div key={art._id} onClick={() => setSelectedArtwork(art)}
+            <div key={art.id} onClick={() => setSelectedArtwork(art)}
               className="group relative rounded-3xl overflow-hidden cursor-pointer shadow-card hover:shadow-glow hover:-translate-y-1.5 transition-all duration-300 aspect-[4/3]">
               <img
                 src={art.image_original_url}
@@ -254,10 +265,10 @@ export default function GalleryPage() {
                   <Star size={11} fill="currentColor" /> Featured
                 </div>
                 <h3 className="text-white font-bold text-lg leading-tight">{art.title}</h3>
-                <p className="text-white/70 text-sm">by {art.child?.displayName}</p>
+                <p className="text-white/70 text-sm">by {art.child?.display_name}</p>
                 <div className="flex items-center gap-3 mt-2 text-white/60 text-xs">
-                  <span className="flex items-center gap-1"><Heart size={11}/>{art.likeCount}</span>
-                  <span className="flex items-center gap-1"><Eye size={11}/>{art.viewCount}</span>
+                  <span className="flex items-center gap-1"><Heart size={11}/>{art.like_count || 0}</span>
+                  <span className="flex items-center gap-1"><Eye size={11}/>{art.view_count || 0}</span>
                 </div>
               </div>
             </div>
@@ -381,7 +392,7 @@ export default function GalleryPage() {
         {filtered.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
             {filtered.map(art => (
-              <ArtworkCard key={art._id} artwork={art} onClick={() => setSelectedArtwork(art)} />
+              <ArtworkCard key={art.id} artwork={art} onClick={() => setSelectedArtwork(art)} />
             ))}
           </div>
         ) : (

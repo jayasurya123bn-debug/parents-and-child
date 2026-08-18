@@ -21,7 +21,7 @@ const AGE_LABELS = {
 
 export default function ArtworkCard({ artwork, onClick }) {
   const [liked, setLiked]   = useState(false);
-  const [likes, setLikes]   = useState(artwork.likeCount || 0);
+  const [likes, setLikes]   = useState(artwork.like_count || 0);
   const [imgErr, setImgErr] = useState(false);
 
   const handleLike = (e) => {
@@ -38,7 +38,7 @@ export default function ArtworkCard({ artwork, onClick }) {
       className="group relative bg-white dark:bg-brand-950/60 rounded-3xl overflow-hidden border border-brand-100/60 dark:border-brand-800/40 shadow-card hover:shadow-glow hover:-translate-y-2 transition-all duration-300 cursor-pointer"
     >
       {/* Featured badge */}
-      {artwork.isFeatured && (
+      {artwork.is_featured && (
         <div className="absolute top-3 left-3 z-10 flex items-center gap-1 bg-gradient-to-r from-amber-400 to-orange-400 text-white text-xs font-bold px-2.5 py-1 rounded-full shadow-md">
           <Star size={10} fill="white" /> Featured
         </div>
@@ -56,7 +56,7 @@ export default function ArtworkCard({ artwork, onClick }) {
         {/* Hover overlay */}
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-4">
           <p className="text-white text-xs font-medium line-clamp-2 leading-relaxed">
-            {artwork.childStory || artwork.description}
+            {artwork.child_story || artwork.description}
           </p>
         </div>
       </div>
@@ -76,12 +76,12 @@ export default function ArtworkCard({ artwork, onClick }) {
         {/* Artist row */}
         <div className="flex items-center gap-2 mb-3">
           <div className="w-6 h-6 rounded-full bg-gradient-to-br from-brand-400 to-accent-400 flex items-center justify-center text-white text-xs font-bold shrink-0">
-            {artwork.child?.displayName?.[0] || '?'}
+            {artwork.child?.display_name?.[0] || '?'}
           </div>
-          <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">{artwork.child?.displayName}</span>
-          {artwork.child?.ageGroup && (
-            <span className={`badge text-xs ml-auto ${AGE_COLORS[artwork.child.ageGroup]}`}>
-              {AGE_LABELS[artwork.child.ageGroup]}
+          <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">{artwork.child?.display_name}</span>
+          {artwork.child?.age_group && (
+            <span className={`badge text-xs ml-auto ${AGE_COLORS[artwork.child.age_group]}`}>
+              {AGE_LABELS[artwork.child.age_group]}
             </span>
           )}
         </div>
@@ -96,7 +96,7 @@ export default function ArtworkCard({ artwork, onClick }) {
         {/* Stats */}
         <div className="flex items-center justify-between pt-2 border-t border-brand-50 dark:border-brand-900/50">
           <div className="flex items-center gap-3 text-xs text-gray-400 dark:text-gray-500">
-            <span className="flex items-center gap-1"><Eye size={12} /> {artwork.viewCount || 0}</span>
+            <span className="flex items-center gap-1"><Eye size={12} /> {artwork.view_count || 0}</span>
           </div>
           <button
             onClick={handleLike}
