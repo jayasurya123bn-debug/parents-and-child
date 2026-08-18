@@ -4,7 +4,7 @@
  */
 import React, { useState, useEffect } from 'react';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
-import { Palette, Menu, X, Upload, MessageSquare, User, LogOut, Shield, Home } from 'lucide-react';
+import { Palette, Menu, X, Upload, MessageSquare, User, LogOut, Shield, Home, LayoutDashboard } from 'lucide-react';
 import useAuthStore from '../store/authStore';
 import { supabase } from '../api/supabaseClient';
 
@@ -49,6 +49,7 @@ export default function Navbar() {
     { to: '/gallery',   label: 'Gallery',    icon: <Home size={16}/> },
     { to: '/kids',      label: '🎨 Kids Zone', icon: null },
     { to: '/forum',     label: 'Community',  icon: <MessageSquare size={16}/> },
+    ...(isAuth ? [{ to: '/dashboard', label: 'Dashboard', icon: <LayoutDashboard size={16}/> }] : []),
     ...(isAuth ? [{ to: '/upload',    label: 'Upload',     icon: <Upload size={16}/> }] : []),
     ...(isAdmin ? [{ to: '/admin',   label: 'Admin',      icon: <Shield size={16}/> }] : []),
   ];
@@ -126,7 +127,13 @@ export default function Navbar() {
           ))}
           <div className="border-t border-brand-100 pt-3 flex gap-2">
             {isAuth ? (
-              <button onClick={handleLogout} className="btn-secondary flex-1 text-sm">Logout</button>
+              <>
+                <NavLink to="/profile" onClick={() => setOpen(false)}
+                  className="btn-ghost flex-1 text-sm text-center flex items-center justify-center gap-2">
+                  <User size={15}/> Profile
+                </NavLink>
+                <button onClick={handleLogout} className="btn-secondary flex-1 text-sm">Logout</button>
+              </>
             ) : (
               <>
                 <Link to="/login"    className="btn-secondary flex-1 text-sm text-center" onClick={() => setOpen(false)}>Sign In</Link>
