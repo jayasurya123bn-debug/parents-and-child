@@ -55,7 +55,9 @@ export default function RegisterPage() {
 
       if (dbError) {
         console.error('Error inserting user data:', dbError);
-        // We still let them continue if auth succeeded, but log the error
+        setError('Account created, but profile setup failed: ' + dbError.message + '. Please run the RLS fix SQL in Supabase and register again.');
+        setLoading(false);
+        return;
       }
     }
 
